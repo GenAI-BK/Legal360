@@ -12,7 +12,7 @@ import logging
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
-
+import streamlit as st
 from langchain.chains.llm import LLMChain
 
 # Setup base directory for cases
@@ -50,7 +50,7 @@ def list_cases():
 
 # Function to load case files into memory
 
-os.environ["GOOGLE_API_KEY"]="AIzaSyCTBP250-hxLf--88JNtWcx4zmknJiwgXo"
+os.environ["GOOGLE_API_KEY"]=st.secrets["GOOGLE_API_KEY"]
 llm=ChatGoogleGenerativeAI(model="gemini-pro",temperature=0)
 memory= ConversationBufferWindowMemory(memory_key="history",input_key="question", return_messages=True, k=5)
 
