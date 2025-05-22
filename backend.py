@@ -9,7 +9,9 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import os
 import logging
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.llms.openai import OpenAI
+
+# from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
 import streamlit as st
@@ -50,8 +52,8 @@ def list_cases():
 
 # Function to load case files into memory
 
-os.environ["GOOGLE_API_KEY"]=st.secrets["GOOGLE_API_KEY"]
-llm=ChatGoogleGenerativeAI(model="gemini-1.5-pro",temperature=0)
+os.environ["OPENAI_API_KEY"]=st.secrets["OPENAI_API_KEY"]
+llm=OpenAI(temperature=0)
 memory= ConversationBufferWindowMemory(memory_key="history",input_key="question", return_messages=True, k=5)
 
 
