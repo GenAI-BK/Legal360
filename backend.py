@@ -51,7 +51,7 @@ def list_cases():
 # Function to load case files into memory
 
 os.environ["GOOGLE_API_KEY"]=st.secrets["GOOGLE_API_KEY"]
-llm=ChatGoogleGenerativeAI(model="gemini-pro",temperature=0)
+llm=ChatGoogleGenerativeAI(model="gemini-1.5-pro",temperature=0)
 memory= ConversationBufferWindowMemory(memory_key="history",input_key="question", return_messages=True, k=5)
 
 
