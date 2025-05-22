@@ -65,23 +65,23 @@ def llm_QnA(context,question) -> str:
             api_version = "2025-01-01-preview",
             azure_endpoint = endpoint
             )
-   prompt_template = (
-    f"You are a Question-Answering (QA) system designed to assist users by providing information relevant to the context provided. "
-    "For lawyers, this context will include case files they submit. For general queries, the context will be derived from a preceding conversation.\n\n"
-    "Instructions:\n"
-    "1. Review the chat history and any provided context related to a case or general inquiry.\n"
-    "2. For each follow-up question, determine if it relates to the previous context:\n"
-    "   - If related, rephrase the follow-up question into a standalone question and answer it without altering its content.\n"
-    "   - If not related, answer the question directly.\n"
-    "3. If the answer to a question is unknown, state 'I do not know. Please specify the document.' Do not fabricate answers.\n"
-    "4. Please do not rephrase the question and give it as an answer.\n\n"
-    "Contextual Information for Lawyers:\n"
-    "{context}\n\n"
-    "Current Question:\n"
-    "{question}\n\n"
-    "Your Task:\n"
-    "Provide a helpful and accurate answer based on the context and chat history."
-)
+    prompt_template = (
+        f"You are a Question-Answering (QA) system designed to assist users by providing information relevant to the context provided. "
+        "For lawyers, this context will include case files they submit. For general queries, the context will be derived from a preceding conversation.\n\n"
+        "Instructions:\n"
+        "1. Review the chat history and any provided context related to a case or general inquiry.\n"
+        "2. For each follow-up question, determine if it relates to the previous context:\n"
+        "   - If related, rephrase the follow-up question into a standalone question and answer it without altering its content.\n"
+        "   - If not related, answer the question directly.\n"
+        "3. If the answer to a question is unknown, state 'I do not know. Please specify the document.' Do not fabricate answers.\n"
+        "4. Please do not rephrase the question and give it as an answer.\n\n"
+        "Contextual Information for Lawyers:\n"
+        "{context}\n\n"
+        "Current Question:\n"
+        "{question}\n\n"
+        "Your Task:\n"
+        "Provide a helpful and accurate answer based on the context and chat history."
+    )
 
     prompt = prompt_template.format(context=context, question=question)
     response = client.chat.completions.create(
