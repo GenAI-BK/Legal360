@@ -65,27 +65,25 @@ def llm_QnA(context,question) -> str:
             api_version = "2025-01-01-preview",
             azure_endpoint = endpoint
             )
-    prompt = (
-        f"You are a Question-Answering (QA) system designed to assist users by providing information relevant to the context provided. For lawyers, this context will include case files they submit. For general queries, the context will be derived from a preceding conversation.
+   prompt_template = (
+    f"You are a Question-Answering (QA) system designed to assist users by providing information relevant to the context provided. "
+    "For lawyers, this context will include case files they submit. For general queries, the context will be derived from a preceding conversation.\n\n"
+    "Instructions:\n"
+    "1. Review the chat history and any provided context related to a case or general inquiry.\n"
+    "2. For each follow-up question, determine if it relates to the previous context:\n"
+    "   - If related, rephrase the follow-up question into a standalone question and answer it without altering its content.\n"
+    "   - If not related, answer the question directly.\n"
+    "3. If the answer to a question is unknown, state 'I do not know. Please specify the document.' Do not fabricate answers.\n"
+    "4. Please do not rephrase the question and give it as an answer.\n\n"
+    "Contextual Information for Lawyers:\n"
+    "{context}\n\n"
+    "Current Question:\n"
+    "{question}\n\n"
+    "Your Task:\n"
+    "Provide a helpful and accurate answer based on the context and chat history."
+)
 
-        Instructions:
-        1. Review the chat history and any provided context related to a case or general inquiry.
-        2. For each follow-up question, determine if it relates to the previous context:
-           - If related, rephrase the follow-up question into a standalone question and answer it without altering its content.
-           - If not related, answer the question directly.
-        3. If the answer to a question is unknown, state 'I do not know. Please specify the document.' Do not fabricate answers.
-        4. Please do not rephrase the question and give it as an answer 
-        
-        Contextual Information for Lawyers:
-        {context}
-        
-        Current Question:
-        {question}
-        
-        Your Task:
-        Provide a helpful and accurate answer based on the context and chat history."
-    )
-
+    prompt = prompt_template.format(context=context, question=question)
     response = client.chat.completions.create(
         model=deployment_name,  # your Azure deployment name here
         messages=[
@@ -182,28 +180,34 @@ def bot(ques,selected_case):
 
 def llm_Summary(context: str) -> str:
     client = AzureOpenAI(
-            api_key =api_key ,  
-            api_version = "2025-01-01-preview",
-            azure_endpoint = endpoint
-            )
-    prompt = (
-        f"Create a structured report of a legal case using the provided {context}. If information for any point is not available, do not fabricate content. Simply state 'Information not available.' 
-
-        Guidelines for the Report:
-        1. Case Title and Citation: Include the full name of the case and its citation.
-        2. Jurisdiction: Specify the jurisdiction where the case was adjudicated.
-        3. Date: Provide the date of the ruling.
-        4. Parties Involved: List the main parties in the case.
-        5. Facts of the Case: Briefly summarize the key facts that led to the legal dispute.
-        6. Issues: Describe the main legal issues addressed by the court.
-        7. Rulings: Summarize the court's decisions on the issues.
-        8. Reasoning: Explain the rationale behind the court's decisions.
-        9. Legal Principles/Precedents Applied: Note any significant legal principles or precedents that were applied.
-        10. Outcome and Remedies: Outline the outcome of the case and any remedies ordered by the court.
-        11. Dissenting Opinions: Summarize any dissenting opinions, if available.
-        12. Impact and Significance: Discuss the broader impact of the case, including any implications for future legal interpretations or law changes.
-        Follow the above points to generate the report."
+        api_key=api_key,  
+        api_version="2025-01-01-preview",
+        azure_endpoint=endpoint
     )
+
+    prompt_template = (
+        "Create a structured report of a legal case using the provided context below. "
+        "If information for any point is not available, do not fabricate content. Simply state 'Information not available.'\n\n"
+        "Context:\n"
+        "{context}\n\n"
+        "Guidelines for the Report:\n"
+        "1. Case Title and Citation: Include the full name of the case and its citation.\n"
+        "2. Jurisdiction: Specify the jurisdiction where the case was adjudicated.\n"
+        "3. Date: Provide the date of the ruling.\n"
+        "4. Parties Involved: List the main parties in the case.\n"
+        "5. Facts of the Case: Briefly summarize the key facts that led to the legal dispute.\n"
+        "6. Issues: Describe the main legal issues addressed by the court.\n"
+        "7. Rulings: Summarize the court's decisions on the issues.\n"
+        "8. Reasoning: Explain the rationale behind the court's decisions.\n"
+        "9. Legal Principles/Precedents Applied: Note any significant legal principles or precedents that were applied.\n"
+        "10. Outcome and Remedies: Outline the outcome of the case and any remedies ordered by the court.\n"
+        "11. Dissenting Opinions: Summarize any dissenting opinions, if available.\n"
+        "12. Impact and Significance: Discuss the broader impact of the case, including any implications for future legal interpretations or law changes.\n\n"
+        "Follow the above points to generate the report."
+    )
+
+    # Replace placeholder with actual context
+    prompt = prompt_template.format(context=context)
 
     response = client.chat.completions.create(
         model=deployment_name,  # your Azure deployment name here
@@ -214,6 +218,7 @@ def llm_Summary(context: str) -> str:
     )
 
     return response.choices[0].message.content.strip()
+
 
 def summarization(case_name):
     # case_name=request.case_name
