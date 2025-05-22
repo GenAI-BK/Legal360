@@ -132,7 +132,7 @@ def find_sentiment(query,lst):
 
                        {lst}
 
-                     Ensure that your response corresponds to any one of these categories.
+                     Ensure that your response corresponds to any one of these categories.Your answer should only be one of the item from {lst}.Don't make sentences.
                      For example when the question is about someones identity then the aswer for it will be in Witness list,Similarly  a breif of case or financial information would be in discovery and finance statement file respectivily"""
         )
     chain=LLMChain(llm=llm,prompt=prompt_template)
