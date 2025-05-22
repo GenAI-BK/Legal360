@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 import os
 import logging
 from langchain.llms.openai import OpenAI
-
+import re
 # from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.prompts import PromptTemplate
@@ -124,21 +124,40 @@ def load_case_files(base_path, selected_case):
                 print(f"Failed to read {file_name}: {e}")
 
     return case_files_content
-
-def find_sentiment(query,lst):
-    prompt_template= PromptTemplate.from_template(
-            
-            template="""{query} is a question for which you need to identify which of the following document  might contain the answer:
-
-                       {lst}
-
-                     Ensure that your response corresponds to any one of these categories.Your answer should only be one of the item from {lst}.Don't make sentences.
-                     For example when the question is about someones identity then the aswer for it will be in Witness list,Similarly  a breif of case or financial information would be in discovery and finance statement file respectivily"""
+def extract_sentiment_from_text(raw_text, candidates):
+    """
+    Extract best matching sentiment from raw_text by matching known candidate list.
+    Returns the first candidate found in raw_text ignoring case.
+    """
+    raw_text_lower = raw_text.lower()
+    for candidate in candidates:
+        pattern = re.escape(candidate.lower())
+        if re.search(rf"\b{pattern}\b", raw_text_lower):
+            return candidate  # Return the matched candidate exactly as in candidates list
+    # If no direct match found, optionally try fuzzy matching or return None
+    return None
+def find_sentiment(query, lst):
+    lst_str = ", ".join(lst)
+    prompt_template = PromptTemplate.from_template(
+        template=(
+            "{query} is a question for which you need to identify which of the following documents might contain the answer:\n\n"
+            "{lst_str}\n\n"
+            "Ensure your response corresponds to one item from the list. It's okay to respond in a sentence."
         )
-    chain=LLMChain(llm=llm,prompt=prompt_template)
-    sentiment=chain.run({"query":query,"lst":lst})
-    print(sentiment)
-    return sentiment
+    )
+
+    chain = LLMChain(llm=llm, prompt=prompt_template)
+    raw_response = chain.run({"query": query, "lst_str": lst_str})
+    print(f"Raw LLM response: {raw_response}")
+
+    matched_sentiment = extract_sentiment_from_text(raw_response, lst)
+
+    if matched_sentiment is None:
+        raise ValueError(f"Could not match any document from list in the LLM response: {raw_response}")
+
+    print(f"Extracted sentiment: {matched_sentiment}")
+    return matched_sentiment
+
 # # history=[]
 def query_answer(query,selected_case):
     
