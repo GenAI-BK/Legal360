@@ -11,11 +11,11 @@ import os
 import logging
 from langchain.llms.openai import OpenAI
 import re
-# from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.memory import ConversationBufferWindowMemory
+
 from langchain.prompts import PromptTemplate
 import streamlit as st
 from langchain.chains.llm import LLMChain
+from openai import AzureOpenAI
 
 # Setup base directory for cases
 case="Cases" 
@@ -53,48 +53,48 @@ def list_cases():
 # Function to load case files into memory
 
 os.environ["OPENAI_API_KEY"]=st.secrets["OPENAI_API_KEY"]
+api_key = st.secrets["general"]["AZURE_OPENAI_API_KEY"]
+endpoint = st.secrets["general"]["AZURE_OPENAI_ENDPOINT"]
+deployment_name = st.secrets["general"]["AZURE_OPENAI_DEPLOYMENT_NAME"]
 llm=OpenAI(temperature=0)
-memory= ConversationBufferWindowMemory(memory_key="history",input_key="question", return_messages=True, k=5)
 
 
-prompt_template = """You are a Question-Answering (QA) system designed to assist users by providing information relevant to the context provided. For lawyers, this context will include case files they submit. For general queries, the context will be derived from a preceding conversation.
+def llm_QnA(context,question) -> str:
+    client = AzureOpenAI(
+            api_key =api_key ,  
+            api_version = "2025-01-01-preview",
+            azure_endpoint = endpoint
+            )
+    prompt = (
+        f"You are a Question-Answering (QA) system designed to assist users by providing information relevant to the context provided. For lawyers, this context will include case files they submit. For general queries, the context will be derived from a preceding conversation.
 
-Instructions:
-1. Review the chat history and any provided context related to a case or general inquiry.
-2. For each follow-up question, determine if it relates to the previous context:
-   - If related, rephrase the follow-up question into a standalone question and answer it without altering its content.
-   - If not related, answer the question directly.
-3. If the answer to a question is unknown, state 'I do not know. Please specify the document.' Do not fabricate answers.
-4. Please do not rephrase the question and give it as an answer 
-
-
-
-Contextual Information for Lawyers:
-{context}
-
-Chat History:
-{history}
-
-Current Question:
-{question}
-
-Your Task:
-Provide a helpful and accurate answer based on the context and chat history."""
-qa_prompt = PromptTemplate(
-    template=prompt_template, input_variables=["history","context", "question"]
-)
-
-def create_chain(prompt):
-    chain =  LLMChain(
-        llm=llm,
-        prompt=prompt,
-        memory=memory
-        )
+        Instructions:
+        1. Review the chat history and any provided context related to a case or general inquiry.
+        2. For each follow-up question, determine if it relates to the previous context:
+           - If related, rephrase the follow-up question into a standalone question and answer it without altering its content.
+           - If not related, answer the question directly.
+        3. If the answer to a question is unknown, state 'I do not know. Please specify the document.' Do not fabricate answers.
+        4. Please do not rephrase the question and give it as an answer 
         
+        Contextual Information for Lawyers:
+        {context}
         
-    
-    return chain
+        Current Question:
+        {question}
+        
+        Your Task:
+        Provide a helpful and accurate answer based on the context and chat history."
+    )
 
+    response = client.chat.completions.create(
+        model=deployment_name,  # your Azure deployment name here
+        messages=[
+            {"role": "system", "content": "You are a Expert Legal Chatbot."},
+            {"role": "user", "content": prompt},
+        ]
+    )
+
+    return response.choices[0].message.content.strip()
 
 def load_case_files(base_path, selected_case):
     # Construct the full path to the case directory
@@ -166,23 +166,28 @@ def query_answer(query,selected_case):
         lst=dic.keys()
         print(lst)
         sentiment = find_sentiment(query,lst)
-        chain = create_chain(qa_prompt)
+       
         
         # Determine the context based on the sentiment
         context=dic[sentiment]
 
         # Run the chain with the appropriate context
-        answer = chain.run({"context": context, "question": query})
+        answer = llm_QnA(context,query)
         
         return answer
 def bot(ques,selected_case):
     
     ans=query_answer(ques,selected_case)
     return ans
-def summarization(case_name):
-    # case_name=request.case_name
-    context=load_case_files(case,case_name)
-    template="""Create a structured report of a legal case using the provided {context}. If information for any point is not available, do not fabricate content. Simply state 'Information not available.' 
+
+def llm_Summary(context: str) -> str:
+    client = AzureOpenAI(
+            api_key =api_key ,  
+            api_version = "2025-01-01-preview",
+            azure_endpoint = endpoint
+            )
+    prompt = (
+        f"Create a structured report of a legal case using the provided {context}. If information for any point is not available, do not fabricate content. Simply state 'Information not available.' 
 
         Guidelines for the Report:
         1. Case Title and Citation: Include the full name of the case and its citation.
@@ -197,16 +202,24 @@ def summarization(case_name):
         10. Outcome and Remedies: Outline the outcome of the case and any remedies ordered by the court.
         11. Dissenting Opinions: Summarize any dissenting opinions, if available.
         12. Impact and Significance: Discuss the broader impact of the case, including any implications for future legal interpretations or law changes.
-        Follow the above points to generate the report."""
-    prompt = PromptTemplate(
-    template=template, input_variables=["context"]
-)
-    chain =  LLMChain(
-        llm=llm,
-        prompt=prompt
-        
-        )
-    report=chain.run({"context":context})   
+        Follow the above points to generate the report."
+    )
+
+    response = client.chat.completions.create(
+        model=deployment_name,  # your Azure deployment name here
+        messages=[
+            {"role": "system", "content": "You are a Legal Document summarizer."},
+            {"role": "user", "content": prompt},
+        ]
+    )
+
+    return response.choices[0].message.content.strip()
+
+def summarization(case_name):
+    # case_name=request.case_name
+    context=load_case_files(case,case_name)
+    
+    report=llm_Summary(context)
     
     return report
    
